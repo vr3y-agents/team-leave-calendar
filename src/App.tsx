@@ -161,12 +161,10 @@ export default function App() {
       <header className="top">
         <div className="wrap top-inner">
           <div className="brand">
-            <Hanger />
+            <span className="mark" aria-hidden="true" />
             <div>
-              <h1 className="word">
-                OUT<span className="dot" aria-hidden="true" />
-              </h1>
-              <p className="tag">The team leave board</p>
+              <h1 className="word">Out</h1>
+              <p className="tag">Team leave</p>
             </div>
           </div>
           <p className="header-count">
@@ -175,7 +173,6 @@ export default function App() {
           </p>
         </div>
       </header>
-      <div className="stripe" aria-hidden="true" />
 
       <main className="wrap main">
         <div className="app-grid">
@@ -437,17 +434,4 @@ export default function App() {
 function parseStart(iso: string): Date {
   const [year, month, day] = iso.split("-").map(Number);
   return new Date(year, (month ?? 1) - 1, day ?? 1);
-}
-
-function Hanger() {
-  return (
-    <svg className="hanger" viewBox="0 0 64 84" aria-hidden="true">
-      <path
-        fill="#D6FF3C"
-        d="M32 1c7.2 0 12 4.6 12 11v7H20v-7C20 5.6 24.8 1 32 1zM14 23h36c2.8 0 5 2.2 5 5v48c0 2.8-2.2 5-5 5H14c-2.8 0-5-2.2-5-5V28c0-2.8 2.2-5 5-5z"
-      />
-      <circle cx="32" cy="12" r="4" fill="#14120B" />
-      <path fill="#14120B" d="M20 40h24v5H20zm0 12h16v5H20z" />
-    </svg>
-  );
 }

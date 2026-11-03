@@ -25,14 +25,14 @@ export type BoardState = {
 export type Swatch = { bg: string; ink: string };
 
 export const PALETTE: Swatch[] = [
-  { bg: "#FF4D1C", ink: "#1A1008" },
-  { bg: "#2A45FF", ink: "#FFFFFF" },
-  { bg: "#D6FF3C", ink: "#1A1008" },
-  { bg: "#FF2E88", ink: "#1A1008" },
-  { bg: "#14A35A", ink: "#FFFFFF" },
-  { bg: "#FFB000", ink: "#1A1008" },
-  { bg: "#6E3BFF", ink: "#FFFFFF" },
-  { bg: "#1A1208", ink: "#F4EFE4" },
+  { bg: "#f0c2b4", ink: "#5c2e22" },
+  { bg: "#c5d7ee", ink: "#1c3d66" },
+  { bg: "#d5e3bc", ink: "#2d4318" },
+  { bg: "#f0c9d6", ink: "#5c2940" },
+  { bg: "#c5e3da", ink: "#14382e" },
+  { bg: "#ead9b0", ink: "#4a3b16" },
+  { bg: "#ddd0ee", ink: "#3d2f5c" },
+  { bg: "#d5dbe3", ink: "#24303c" },
 ];
 
 export const LEAVE_TYPES: LeaveType[] = ["Vacation", "Sick", "Other"];
