@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
+  DEFAULT_ALLOWANCE,
   LEAVE_TYPES,
   LeaveType,
   assignLanes,
@@ -13,6 +14,7 @@ import {
   offOn,
   saveBoard,
   segmentsForWeek,
+  usedWorkingDays,
   weeksForMonth,
   type BoardState,
   type Person,
@@ -86,6 +88,12 @@ export default function App() {
     () => [...board.entries].sort((a, b) => a.start.localeCompare(b.start) || a.end.localeCompare(b.end)),
     [board.entries],
   );
+  const usedByPerson = useMemo(() => {
+    const usage = new Map<string, number>();
+    for (const person of board.people) usage.set(person.id, usedWorkingDays(board.entries, person.id));
+    return usage;
+  }, [board]);
+  const allowanceWarning = useMemo(() => describeOverage(board, form), [board, form]);
 
   function shiftMonth(delta: number) {
     setCursor(({ year, month }) => {
@@ -126,6 +134,7 @@ export default function App() {
       name,
       color: swatch.bg,
       ink: swatch.ink,
+      allowance: DEFAULT_ALLOWANCE,
     };
     const entry: TimeOff = {
       id: crypto.randomUUID(),
@@ -146,6 +155,17 @@ export default function App() {
     setSelectedId(entry.id);
     setForm((current) => ({ ...current, note: "" }));
     setError("");
+  }
+
+  function updateAllowance(personId: string, raw: string) {
+    if (raw.trim() === "") return;
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed) || parsed < 0) return;
+    const allowance = Math.min(366, Math.round(parsed));
+    setBoard((current) => ({
+      ...current,
+      people: current.people.map((person) => (person.id === personId ? { ...person, allowance } : person)),
+    }));
   }
 
   function removeEntry(id: string) {
@@ -305,13 +325,48 @@ export default function App() {
             <section className="panel" aria-label="Team">
               <p className="kicker">Team</p>
               <ul className="legend">
-                {board.people.map((person) => (
-                  <li key={person.id} className="chip">
-                    <span className="swatch" style={{ background: person.color }} />
-                    {person.name}
-                  </li>
-                ))}
+                {board.people.map((person) => {
+                  const used = usedByPerson.get(person.id) ?? 0;
+                  const over = used > person.allowance;
+                  const left = person.allowance - used;
+                  const percent = person.allowance <= 0 ? (used > 0 ? 100 : 0) : Math.min(100, (used / person.allowance) * 100);
+                  return (
+                    <li key={person.id} className="member">
+                      <div className="member-top">
+                        <span className="swatch" style={{ background: person.color }} />
+                        <span className="member-name">{person.name}</span>
+                        <label className="allowance-field">
+                          <input
+                            type="number"
+                            min={0}
+                            max={366}
+                            step={1}
+                            inputMode="numeric"
+                            aria-label={`${person.name} holiday allowance in days`}
+                            value={person.allowance}
+                            onChange={(event) => updateAllowance(person.id, event.target.value)}
+                          />
+                          days
+                        </label>
+                      </div>
+                      <p className={over ? "allowance-meta over" : "allowance-meta"}>
+                        {used} used · {over ? `${-left} over` : `${left} left`}
+                      </p>
+                      <div
+                        className="meter"
+                        role="meter"
+                        aria-label={`${person.name} holiday days used`}
+                        aria-valuemin={0}
+                        aria-valuemax={Math.max(person.allowance, used)}
+                        aria-valuenow={used}
+                      >
+                        <span className={over ? "meter-fill over" : "meter-fill"} style={{ width: `${percent}%` }} />
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
+              <p className="hint">Only vacation weekdays count. Sick and Other do not.</p>
             </section>
 
             <section className="panel">
@@ -385,6 +440,11 @@ export default function App() {
                     {error}
                   </p>
                 ) : null}
+                {allowanceWarning ? (
+                  <p className="form-warn" role="status">
+                    {allowanceWarning}
+                  </p>
+                ) : null}
                 <button type="submit" className="primary">
                   Add to the board
                 </button>
@@ -434,4 +494,27 @@ export default function App() {
 function parseStart(iso: string): Date {
   const [year, month, day] = iso.split("-").map(Number);
   return new Date(year, (month ?? 1) - 1, day ?? 1);
+}
+
+function describeOverage(board: BoardState, form: FormState): string {
+  const name = form.name.trim().replace(/\s+/g, " ");
+  if (!name || form.type !== "Vacation" || !form.start || !form.end || form.end < form.start) return "";
+  const person = board.people.find((item) => item.name.toLowerCase() === name.toLowerCase());
+  const allowance = person?.allowance ?? DEFAULT_ALLOWANCE;
+  const personId = person?.id ?? "draft";
+  const relevant = person ? board.entries.filter((entry) => entry.personId === person.id) : [];
+  const draft: TimeOff = {
+    id: "draft",
+    personId,
+    start: form.start,
+    end: form.end,
+    type: "Vacation",
+    note: "",
+    sample: false,
+  };
+  const used = usedWorkingDays([...relevant, draft], personId);
+  if (used <= allowance) return "";
+  const over = used - allowance;
+  const who = person?.name ?? name;
+  return `${who} would be ${over} ${over === 1 ? "day" : "days"} over the ${allowance}-day allowance.`;
 }

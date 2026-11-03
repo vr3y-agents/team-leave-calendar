@@ -5,6 +5,8 @@ export type Person = {
   name: string;
   color: string;
   ink: string;
+  /** Holiday allowance in working days (Mon–Fri). */
+  allowance: number;
 };
 
 export type TimeOff = {
@@ -36,6 +38,38 @@ export const PALETTE: Swatch[] = [
 ];
 
 export const LEAVE_TYPES: LeaveType[] = ["Vacation", "Sick", "Other"];
+
+/** Used when an older saved person has no allowance yet. */
+export const DEFAULT_ALLOWANCE = 25;
+
+const MAX_ALLOWANCE = 366;
+
+export function countsAgainstAllowance(type: LeaveType): boolean {
+  return type === "Vacation";
+}
+
+export function normalizeAllowance(value: unknown): number {
+  const parsed = typeof value === "number" ? value : typeof value === "string" ? Number(value) : NaN;
+  if (!Number.isFinite(parsed) || parsed < 0) return DEFAULT_ALLOWANCE;
+  return Math.min(MAX_ALLOWANCE, Math.round(parsed));
+}
+
+/** Unique vacation weekdays for one person. Overlapping entries count once. */
+export function usedWorkingDays(entries: TimeOff[], personId: string): number {
+  const days = new Set<string>();
+  for (const entry of entries) {
+    if (entry.personId !== personId || !countsAgainstAllowance(entry.type)) continue;
+    let cursor = parseISODate(entry.start);
+    const endDate = parseISODate(entry.end);
+    if (entry.end < entry.start) continue;
+    for (let guard = 0; cursor <= endDate && guard < 4000; guard += 1) {
+      const day = cursor.getDay();
+      if (day !== 0 && day !== 6) days.add(formatISODate(cursor));
+      cursor = addDays(cursor, 1);
+    }
+  }
+  return days.size;
+}
 
 const STORAGE_KEY = "out-board-v1";
 
@@ -114,10 +148,10 @@ export function seedBoard(now = new Date()): BoardState {
   const breakEnd = new Date(today.getFullYear(), today.getMonth() + 2, 0);
 
   const people: Person[] = [
-    { id: "maya", name: "Maya Chen", color: PALETTE[0].bg, ink: PALETTE[0].ink },
-    { id: "jules", name: "Jules Okonkwo", color: PALETTE[1].bg, ink: PALETTE[1].ink },
-    { id: "sam", name: "Sam Rivera", color: PALETTE[2].bg, ink: PALETTE[2].ink },
-    { id: "priya", name: "Priya Nair", color: PALETTE[3].bg, ink: PALETTE[3].ink },
+    { id: "maya", name: "Maya Chen", color: PALETTE[0].bg, ink: PALETTE[0].ink, allowance: 0 },
+    { id: "jules", name: "Jules Okonkwo", color: PALETTE[1].bg, ink: PALETTE[1].ink, allowance: 0 },
+    { id: "sam", name: "Sam Rivera", color: PALETTE[2].bg, ink: PALETTE[2].ink, allowance: 0 },
+    { id: "priya", name: "Priya Nair", color: PALETTE[3].bg, ink: PALETTE[3].ink, allowance: 0 },
   ];
 
   const entries: TimeOff[] = [
@@ -168,13 +202,57 @@ export function seedBoard(now = new Date()): BoardState {
     },
   ];
 
+  for (const person of people) person.allowance = seededAllowance(person.id, entries);
   return { people, entries };
 }
 
-function isBoardState(value: unknown): value is BoardState {
-  if (!value || typeof value !== "object") return false;
-  const board = value as BoardState;
-  return Array.isArray(board.people) && Array.isArray(board.entries);
+function seededAllowance(personId: string, entries: TimeOff[]): number {
+  const used = usedWorkingDays(entries, personId);
+  if (personId === "jules") return 25;
+  if (personId === "priya") return used + 4;
+  if (personId === "sam") return used + 5;
+  return used + 7;
+}
+
+function migratePerson(value: unknown): Person | null {
+  if (!value || typeof value !== "object") return null;
+  const raw = value as Partial<Person>;
+  if (typeof raw.id !== "string" || typeof raw.name !== "string") return null;
+  if (typeof raw.color !== "string" || typeof raw.ink !== "string") return null;
+  return {
+    id: raw.id,
+    name: raw.name,
+    color: raw.color,
+    ink: raw.ink,
+    allowance: normalizeAllowance(raw.allowance),
+  };
+}
+
+function migrateEntry(value: unknown): TimeOff | null {
+  if (!value || typeof value !== "object") return null;
+  const raw = value as Partial<TimeOff>;
+  if (typeof raw.id !== "string" || typeof raw.personId !== "string") return null;
+  if (typeof raw.start !== "string" || typeof raw.end !== "string") return null;
+  if (typeof raw.type !== "string" || !isLeaveType(raw.type)) return null;
+  return {
+    id: raw.id,
+    personId: raw.personId,
+    start: raw.start,
+    end: raw.end,
+    type: raw.type,
+    note: typeof raw.note === "string" ? raw.note : "",
+    sample: raw.sample === true,
+  };
+}
+
+function migrateBoard(value: unknown): BoardState | null {
+  if (!value || typeof value !== "object") return null;
+  const raw = value as { people?: unknown; entries?: unknown };
+  if (!Array.isArray(raw.people) || !Array.isArray(raw.entries)) return null;
+  return {
+    people: raw.people.map(migratePerson).filter((person): person is Person => person !== null),
+    entries: raw.entries.map(migrateEntry).filter((entry): entry is TimeOff => entry !== null),
+  };
 }
 
 export function loadBoard(): BoardState {
@@ -182,8 +260,7 @@ export function loadBoard(): BoardState {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return seedBoard();
     const parsed: unknown = JSON.parse(raw);
-    if (!isBoardState(parsed)) return seedBoard();
-    return parsed;
+    return migrateBoard(parsed) ?? seedBoard();
   } catch {
     return seedBoard();
   }

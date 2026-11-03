@@ -318,20 +318,73 @@ h1, h2, h3, p { margin: 0; }
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0;
   margin: 0;
   padding: 0;
 }
 
-.chip {
+.member {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 0 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.member:last-child { border-bottom: 0; padding-bottom: 2px; }
+
+.member-top {
   display: flex;
   align-items: center;
-  gap: 10px;
-  border: 0;
-  background: transparent;
-  padding: 6px 0;
+  gap: 8px;
+}
+
+.member-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 550;
+}
+
+label.allowance-field {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
   font-weight: 500;
 }
+
+.allowance-field input {
+  width: 58px;
+  padding: 4px 8px;
+  text-align: right;
+}
+
+.allowance-meta {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.allowance-meta.over { color: #8d3232; }
+
+.meter {
+  height: 4px;
+  margin-left: 18px;
+  border-radius: 999px;
+  background: #e6eaec;
+  overflow: hidden;
+}
+
+.meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+}
+
+.meter-fill.over { background: #a65454; }
 
 .swatch, .entry-swatch {
   width: 10px;
@@ -388,6 +441,15 @@ input:focus, select:focus, button:focus-visible {
 .form-error {
   background: #f8ecec;
   color: #8d3232;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: 550;
+}
+
+.form-warn {
+  background: #f8f3e8;
+  color: #6d4e1b;
   border-radius: 10px;
   padding: 8px 12px;
   font-size: 14px;
