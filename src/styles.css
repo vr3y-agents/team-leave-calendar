@@ -42,8 +42,9 @@ h1, h2, h3, p { margin: 0; }
 }
 
 .top {
-  background: var(--surface);
-  border-bottom: 1px solid var(--line);
+  background: #24578a;
+  border-bottom: 1px solid #1d476f;
+  color: #ffffff;
 }
 
 .top-inner {
@@ -61,7 +62,7 @@ h1, h2, h3, p { margin: 0; }
   width: 10px;
   height: 10px;
   border-radius: 999px;
-  background: var(--accent);
+  background: #ffffff;
   flex: none;
 }
 
@@ -71,11 +72,12 @@ h1, h2, h3, p { margin: 0; }
   font-size: 32px;
   line-height: 1;
   letter-spacing: -0.03em;
+  color: #ffffff;
 }
 
 .tag {
   margin-top: 2px;
-  color: var(--muted);
+  color: #e4eef6;
   font-size: 13px;
   font-weight: 450;
 }
