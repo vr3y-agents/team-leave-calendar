@@ -1,8 +1,8 @@
-# OUT
+# Ferienanträge
 
-A small proof of concept for one job: show who on the team is off.
+A small vacation-request app for one team. Employees submit a date range and an optional note. A manager approves or rejects each open request, with an optional comment. The decision shows up on the employee’s own list.
 
-OUT is a month calendar. Time off sits on the days it covers as a solid colour bar, one colour per person. A panel lists who is off today, and you can log or remove a stretch of time off. Nothing leaves the browser.
+The interface is in German. There is no account and no server. Everything stays in the browser.
 
 ## Run it locally
 
@@ -23,43 +23,53 @@ npm run build   # typecheck and production build
 npm run preview # serve the build
 ```
 
-## How it works
+## How to use the demo
 
-There is no account and no server. The board is a single JSON document in `localStorage` under the key `out-board-v1`.
+Choose a person with **Ansicht als**. There is no password.
+
+| Person | Role | Team |
+| --- | --- | --- |
+| Noah Keller | Employee | Entwicklung |
+| Mara Vogel | Employee | Design |
+| Jonas Frei | Employee | Beratung |
+| Lea Hofmann | Manager | Teamleitung |
+
+Noah and Mara already have sample requests, so the pending, approved, and rejected states are visible. Jonas starts with an empty list. Lea sees every open request and can approve or reject it.
+
+The footer button **Demodaten zurücksetzen** replaces the saved requests with that sample set.
+
+## What is stored
+
+The app keeps one JSON document in `localStorage` under `ferien-antraege-v1`.
 
 ```ts
-type Person = {
+type VacationRequest = {
   id: string;
-  name: string;
-  color: string;
-  ink: string;
-  allowance: number; // holiday days
-};
-type TimeOff = {
-  id: string;
-  personId: string;
+  employeeId: string;
   start: string; // YYYY-MM-DD, inclusive
   end: string;   // YYYY-MM-DD, inclusive
-  type: "Vacation" | "Sick" | "Other";
   note: string;
-  sample: boolean;
+  status: "pending" | "approved" | "rejected";
+  createdAt: string;
+  decisionComment: string;
+  decidedAt: string | null;
+  decidedBy: string | null;
 };
 ```
 
-On the first visit the app seeds four people and a handful of entries around the current date. Those rows have `sample: true` and are labelled **Sample** in the today panel and the list. Adding a name that is not already on the team creates a person and assigns the next colour. Matching an existing name (ignoring case) reuses that person and their colour.
+People are fixed in the app. Only the current person and the requests are stored. A missing or unreadable document loads the sample requests. To start over, use the reset button or delete the `ferien-antraege-v1` key and reload.
 
-Each person has a holiday allowance in days, edited in the team list. A new person starts at 25 days. Boards saved before allowances existed load as before: anyone missing `allowance` is given 25, then the board is saved back to the same `out-board-v1` key.
+## Rules
 
-Only **Vacation** counts against the allowance, and only Monday–Friday. A weekday covered by two vacation entries counts once. **Sick** and **Other** stay on the calendar and do not reduce the allowance. The team list shows days used, days left, and a short progress bar. Logging a vacation that would go over the allowance shows a warning and still saves the entry.
+- Start and end are required, and the end cannot be before the start.
+- Only Monday–Friday counts. The form and each request show that working-day total. A range with no working day is rejected.
+- A request can cover at most 366 calendar days.
+- A new request cannot overlap one of your pending or approved requests. A rejected request does not block the dates.
+- The note and the manager’s comment are optional and limited to 280 characters.
+- Public holidays are ordinary working days. There are no half days, and a submitted request cannot be edited or withdrawn.
 
-The calendar is a Monday-start month grid. Prev, Next, and Today change which month is on screen. "Who's off today" always uses the real current date, even if you are looking at another month. Click a bar to highlight its row, or use Remove on the row. Edits are written back to `localStorage` immediately. To start over, delete the `out-board-v1` key in devtools and reload.
+## Limitations
 
-## Limitations and next steps
-
-- One shared browser profile. A teammate on another computer will not see your entries.
-- No editing of a logged stretch, approvals, half days, or public holidays. Remove and add again to change a row. Weekends are not holiday days; bank holidays are not special-cased.
-- Removing a stretch of time off leaves the person on the team list, so their colour stays for the next entry.
-- Colours are assigned in order and are not chosen by the person.
-- Sample data is only a starting point. After the first save, the stored board is the source of truth.
-
-A real version would put the same board behind a shared store, add auth, and let people edit their own entries.
+- One shared browser profile. A teammate on another computer will not see your requests.
+- The person switcher is a demo stand-in for sign-in. Anyone using the browser can act as the manager.
+- Sample requests are only the starting point. After the first save, the stored document is the source of truth.
