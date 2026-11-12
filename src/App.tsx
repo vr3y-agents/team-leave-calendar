@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useState, type ReactNode } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import {
   DEFAULT_USER_ID,
   NOTE_MAX,
@@ -20,6 +21,8 @@ import {
   type RequestStatus,
   type VacationRequest,
 } from "./model";
+
+const APP_URL = "https://team-leave-calendar-khaki.vercel.app";
 
 export default function App() {
   const [state, setState] = useState(loadState);
@@ -304,25 +307,44 @@ export default function App() {
         )}
       </main>
 
-      <footer className="wrap foot">
-        <p>Keine Anmeldung. Anträge bleiben in diesem Browser gespeichert.</p>
-        {confirmReset ? (
-          <div className="reset-confirm">
-            <p>Aktuelle Anträge verwerfen und die Demodaten laden?</p>
-            <div className="actions">
-              <button type="button" className="button button-reject" onClick={resetDemo}>
-                Ja, zurücksetzen
-              </button>
-              <button type="button" className="button button-quiet" onClick={() => setConfirmReset(false)}>
-                Abbrechen
-              </button>
-            </div>
+      <footer className="wrap foot-wrap">
+        <section className="qr-card" aria-labelledby="qr-caption">
+          <QRCodeSVG
+            value={APP_URL}
+            size={144}
+            level="M"
+            marginSize={4}
+            bgColor="#ffffff"
+            fgColor="#1a2332"
+            title={APP_URL}
+          />
+          <div>
+            <p id="qr-caption" className="qr-caption">
+              QR-Code scannen, um die App zu öffnen
+            </p>
+            <p className="qr-url">{APP_URL}</p>
           </div>
-        ) : (
-          <button type="button" className="text-button" onClick={() => setConfirmReset(true)}>
-            Demodaten zurücksetzen
-          </button>
-        )}
+        </section>
+        <div className="foot">
+          <p>Keine Anmeldung. Anträge bleiben in diesem Browser gespeichert.</p>
+          {confirmReset ? (
+            <div className="reset-confirm">
+              <p>Aktuelle Anträge verwerfen und die Demodaten laden?</p>
+              <div className="actions">
+                <button type="button" className="button button-reject" onClick={resetDemo}>
+                  Ja, zurücksetzen
+                </button>
+                <button type="button" className="button button-quiet" onClick={() => setConfirmReset(false)}>
+                  Abbrechen
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button type="button" className="text-button" onClick={() => setConfirmReset(true)}>
+              Demodaten zurücksetzen
+            </button>
+          )}
+        </div>
       </footer>
     </div>
   );
